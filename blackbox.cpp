@@ -63,29 +63,79 @@ void random_atom_positions(board& board) {
 	} while (error_present);
 }
 
-unsigned ray_shoot(board& board/*, char start_direction*/) {
+std::string ray_shoot(board& board, char start_direction) {
 	unsigned x_init = board.x, y_init = board.y;
-	unsigned distance = 0;
-	bool collision = false;
-	char collision_type = ' '; //set this to start_direction
+
+	bool collision = false, atom1 = false, atom2 = false;
+	char collision_type = start_direction;
+	
 	//while(!finish){}
+
 	unsigned a = 0;
-	//switch (collision_type) {
-	//case 'u':
+	switch (collision_type) {
+	case 'u':
 		while (!collision) {
-			while (a != 3) {
-				if (board.x + board.y * (board.ui_size + 1) - board.ui_size == board.atom_position_list[a]) {
-					collision_type = 'r';
-					collision = true;
-					break;
+			while (a != board.atom_position_list.size()) {
+				if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size == board.atom_position_list[a]) {
+					if (board.y == board.ui_size) {
+						collision_type = 'R';
+						collision = true;
+						break;
+					}else
+						atom1 = true;
 				}
-				else if (board.x + board.y * (board.ui_size + 1) - board.ui_size == board.atom_position_list[a] + 1) {
-					collision_type = 'h';
+				else if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size - 2 == board.atom_position_list[a]) {
+					if (board.y == board.ui_size) {
+						collision_type = 'R';
+						collision = true;
+						break;
+					}else
+						atom2 = true;
+				}
+				else if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size - 1 == board.atom_position_list[a]) {
+					collision_type = 'H';
 					//finish true;
 					collision = true;
 					break;
 				}
-				else if (board.x + board.y * (board.ui_size + 1) - board.ui_size == board.atom_position_list[a] + 2) {
+				else if (atom1 && atom2) {
+					collision_type = 'R';
+					collision = true;
+					//finish true;
+					break;
+				}
+				a++;
+			}
+			if (atom1) {
+				collision = true;
+				collision_type = 'l';
+				break;
+			}
+			else if (atom2) {
+				collision = true;
+				collision_type = 'r';
+				break;
+			}
+			if (!collision && !atom1 && !atom2) {
+				board.y--;
+				a = 0;
+			}
+		}
+	case 'd':
+		while (!collision) {
+			while (a != board.atom_position_list.size()) {
+				if (board.x + board.y * (board.ui_size + 1) + board.ui_size == board.atom_position_list[a]) {
+					collision_type = 'r';
+					collision = true;
+					break;
+				}
+				else if (board.x + board.y * (board.ui_size + 1) + board.ui_size == board.atom_position_list[a] + 1) {
+					collision_type = 'H';
+					//finish true;
+					collision = true;
+					break;
+				}
+				else if (board.x + board.y * (board.ui_size + 1) + board.ui_size == board.atom_position_list[a] + 2) {
 					collision_type = 'l';
 					collision = true;
 					break;
@@ -94,18 +144,79 @@ unsigned ray_shoot(board& board/*, char start_direction*/) {
 					a++;
 			}
 			if (!collision) {
-				board.y--;
-				distance++;
+				board.y++;
+				//distance++;
 				a = 0;
 			}
 		}
-	//}
+	case 'r':
+		while (!collision) {
+			while (a != board.atom_position_list.size()) {
+				if (board.x + board.y * (board.ui_size + 1) - board.ui_size == board.atom_position_list[a]) {
+					collision_type = 'd';
+					collision = true;
+					break;
+				}
+				else if (board.x + board.y * (board.ui_size + 1) + 1 == board.atom_position_list[a]) {
+					collision_type = 'H';
+					//finish true;
+					collision = true;
+					break;
+				}
+				else if (board.x + board.y * (board.ui_size + 1) + board.ui_size == board.atom_position_list[a] - 2) {
+					collision_type = 'u';
+					collision = true;
+					break;
+				}
+				else
+					a++;
+			}
+			if (!collision) {
+				board.x++;
+				//distance++;
+				a = 0;
+			}
+		}
+	case 'l':
+		while (!collision) {
+			while (a != board.atom_position_list.size()) {
+				if (board.x + board.y * (board.ui_size + 1) - board.ui_size == board.atom_position_list[a] + 2) {
+					collision_type = 'd';
+					collision = true;
+					break;
+				}
+				else if (board.x + board.y * (board.ui_size + 1) - 1 == board.atom_position_list[a]) {
+					collision_type = 'H';
+					//finish true;
+					collision = true;
+					break;
+				}
+				else if (board.x + board.y * (board.ui_size + 1) + board.ui_size == board.atom_position_list[a]) {
+					collision_type = 'u';
+					collision = true;
+					break;
+				}
+				else
+					a++;
+			}
+			if (!collision) {
+				board.x--;
+				//distance++;
+				a = 0;
+			}
+		}
+
+	}
 	//if (y_init == board.ui_size) {
 
 	//}
+	std::string coordinates = "x" + std::to_string(board.x) + "y" + std::to_string(board.y);
 	std::cout << collision_type;
 	board.y = y_init;
-	return distance;
+	board.x = x_init;
+	return coordinates;
+
+	
 }
 
 void start_prompt(board& board) {
@@ -129,6 +240,7 @@ void start_prompt(board& board) {
 */
 
 void use_cursor(board& board) {
+	char drctn = ' ';
 	switch (board.player_input) {
 	case 'W':
 	case 'w':
@@ -159,7 +271,13 @@ void use_cursor(board& board) {
 
 		break;
 	case ' ':
-		std::cout << ray_shoot(board);
+		if (board.y == board.ui_size) drctn = 'u';
+		else if (board.x == 0) drctn = 'r';
+		else if (board.y == 0) drctn = 'd';
+		else if (board.x == board.ui_size) drctn = 'l';
+		else std::cout << "AAAAAA";
+		std::cout << ray_shoot(board, drctn);
+
 		break;
 
 	case 'K':

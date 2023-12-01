@@ -39,7 +39,7 @@ struct ray {
 void random_atom_positions(board& board) {
 
 	unsigned atom_amount = 3;
-	bool duplicate_present = false;
+	bool error_present = false;
 
 	switch (board.ui_size) {
 	case 6:
@@ -55,24 +55,38 @@ void random_atom_positions(board& board) {
 	srand(time(NULL));
 
 	do {
+		error_present = false;
+		//generuje miejsca na podstawie calej planszy od pierwszego miejsca na atomy do ostatniego (nie sa wykluczone brzegi)
 		for (unsigned i = 0; i < atom_amount; i++)
-			board.atom_position_list.push_back((rand() % (board.ui_size - 1)) + (board.ui_size + 2));
+			board.atom_position_list.push_back((rand() % ((board.ui_size * board.ui_size) - 4) + board.ui_size + 2));
 
 		std::sort(board.atom_position_list.begin(), board.atom_position_list.end());
-
-		for (unsigned i = 1; i < atom_amount; i++) {
+		//sprawdzamy czy miejsca sie powtarzaja i generujemy liczby ponownie, jesli tak
+		for (unsigned i = 1; i < board.atom_position_list.size(); i++) {
 			if (board.atom_position_list[i - 1] == board.atom_position_list[i]) {
-				duplicate_present = true;
+				error_present = true;
+				board.atom_position_list.resize(0);
 				break;
 			}
 		}
-	} while (duplicate_present);
+
+		//sprawdzamy czy sa atomy na prawej lub lewej stronie planszy i generujemy ponownie, jesli tak
+		for (unsigned i = 0; i < board.atom_position_list.size(); i++) {
+			for (unsigned j = 1; j < board.ui_size; j++) {
+				if (board.atom_position_list[i] == j * (board.ui_size + 1) || board.atom_position_list[i] == ((j + 1) * (board.ui_size + 1)) - 1) {
+					error_present = true;
+					board.atom_position_list.resize(0);
+					break;
+				}
+			}
+		}
+	} while (error_present);
 }
 
 void start_prompt(board& board) {
 	do {
 		system("CLS");
-		std::string size_input;
+		std::string size_input = "6";
 		std::cout << "Witaj w grze Black Box! Aby zwyciezyc, znajdz kazdy atom na planszy za pomoca promieni, ktore wystrzeliwujesz z brzegow planszy\nPodaj wielkosc planszy (dostepne sa rozmiary: 5, 8, 10): ";
 
 		std::getline(std::cin, size_input);
@@ -141,7 +155,7 @@ char detect_initial_collision(ray& ray, board& board){
 	}
 }
 */
-
+/*
 void update_ray_position(ray& ray ,board& board) {
 	ray.ray_position = ray.x + ray.y * (board.ui_size + 1);
 }
@@ -292,7 +306,7 @@ void ray_move(ray& ray, board& board) {
 }
 
 
-
+*/
 /*
 * wysylamy promien z miejsca oznaczonego x, y
 * sprawdzamy, czy na poczatku zdarzylo sie odbicie lub trafienie
@@ -332,7 +346,7 @@ void use_cursor(board& board) {
 		else board.x++;
 
 		break;
-
+/*
 	case ' ':
 		if (board.x == 0 || board.x == board.ui_size || (board.y == board.ui_size || board.y == 0)) {
 			char dir = ' ';
@@ -345,10 +359,61 @@ void use_cursor(board& board) {
 				ray_move(new_ray, board);
 		}
 		break;
-		
-	//case 'K':
-	//case 'k':
+*/
+	case 'K':
+	case 'k':
+		std::cout << "dziekujemy za gre!";
 		 
+	}
+}
+
+void ray_shoot(ray& ray, board& board) {
+	if (ray.y == board.ui_size) {
+		for (unsigned i = 0; i < board.atom_position_list.size(); i++) {
+			if (board.atom_position_list[i] == ray.ray_position - board.ui_size - 1 || board.atom_position_list[i] == ray.ray_position - board.ui_size + 1) {
+				std::cout << 'R';
+			}
+			else if (board.atom_position_list[i] == ray.ray_position - board.ui_size) {
+				std::cout << 'H';
+			}
+		}
+
+	}
+}
+
+void print_board(board& game_board) {
+	//system("CLS");
+	std::cout << "\n\n";
+	for (unsigned col = 0; col <= game_board.ui_size; col++) {
+		std::cout << ' ';
+		for (unsigned row = 0; row <= game_board.ui_size; row++) {
+			unsigned printer_position = row + col * (game_board.ui_size + 1);
+			unsigned position = game_board.x + game_board.y * (game_board.ui_size + 1);
+
+			//sprawdza czy w miejscu jest atom
+			bool atom_is_here = false;
+			if ((row != 0) || (row != game_board.ui_size) || (col != 0) || (col != game_board.ui_size))
+				for (unsigned i = 0; i < game_board.atom_position_list.size(); i++)
+					if (game_board.atom_position_list[i] == printer_position) atom_is_here = true;
+
+
+			if ((position == printer_position) && (col == game_board.y)) std::cout << '@';
+			else if (row == 0) {
+				if (col == 0) std::cout << '/';
+				else if (col == game_board.ui_size) std::cout << '\\';
+				else std::cout << '=';
+			}
+			else if (row == game_board.ui_size) {
+				if (col == 0) std::cout << '\\';
+				else if (col == game_board.ui_size) std::cout << '/';
+				else std::cout << '=';
+			}
+			else if (col == 0 || col == game_board.ui_size) std::cout << '=';
+			else if (atom_is_here) std::cout << 'O';
+			else std::cout << printer_position;
+			std::cout << '\t';
+		}
+		std::cout << '\n';
 	}
 }
 
@@ -364,44 +429,16 @@ int main() {
 	game_board.y = game_board.ui_size;
 
 	do{
-		system("CLS");
-		std::cout << "\n\n";
-		for (unsigned col = 0; col <= game_board.ui_size; col++) {
-			std::cout << ' ';
-			for (unsigned row = 0; row <= game_board.ui_size; row++) {
-				unsigned printer_position = row + col * (game_board.ui_size + 1);
-				unsigned position = game_board.x + game_board.y * (game_board.ui_size + 1);
-				
-				//sprawdza czy w miejscu jest atom
-				bool atom_is_here = false;
-				if ((row != 0) || (row != game_board.ui_size) || (col != 0) || (col != game_board.ui_size))
-					for (unsigned i = 0; i < game_board.atom_position_list.size(); i++)
-						if (game_board.atom_position_list[i] + col + game_board.ui_size - 1 == printer_position) atom_is_here = true;
-				
-
-				if ((position == printer_position) && (col == game_board.y)) std::cout << 'X';
-				else if (row == 0) {
-					if (col == 0) std::cout << '/';
-					else if (col == game_board.ui_size) std::cout << '\\';
-					else std::cout << '=';
-				}
-				else if (row == game_board.ui_size) {
-					if (col == 0) std::cout << '\\';
-					else if (col == game_board.ui_size) std::cout << '/';
-					else std::cout << '=';
-				}
-				else if (col == 0 || col == game_board.ui_size) std::cout << '=';
-				else if (atom_is_here) std::cout << 'O';
-				else std::cout << '-';
-				std::cout << '\t';
-			}
-			std::cout << '\n';
-		}
+		print_board(game_board);
 
 		std::cout << "\n\nco robisz wariacie: ";
 		std::string a;
 		std::getline(std::cin,a);
 		game_board.player_input = a[0];
+		if (game_board.player_input == 'k') {
+			std::cout << "dzieki za gre!";
+			return 0;
+		}
 
 		use_cursor(game_board);
 

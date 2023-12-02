@@ -63,264 +63,259 @@ void random_atom_positions(board& board) {
 	} while (error_present);
 }
 
-std::string ray_shoot(board& board, char start_direction) {
+void ray_shoot(board& board, char start_direction) {
 	unsigned x_init = board.x, y_init = board.y;
 
-	bool collision = false, atom1 = false, atom2 = false;
+	bool collision = false, atom1 = false, atom2 = false, finish = false;
 	char collision_type = start_direction;
 	
-	//while(!finish){}
+	while (!finish) {
+		unsigned a = 0;
+		switch (collision_type) {
+			//kursor w górê
+		case 'u':
+			collision = false;
+			atom1 = false, atom2 = false;
+			while (!collision) {
+				while (a != board.atom_position_list.size()) {
+					if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size == board.atom_position_list[a]) {//atom prawa góra
+						if (board.y == board.ui_size) {
+							collision_type = 'R';
+							collision = true;
+							finish = true;
+							break;
+						}
+						else {
+							atom1 = true;
+							collision = true;
+							collision_type = 'l';
+						}
+					}
+					else if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size - 2 == board.atom_position_list[a]) {//atom lewa góra
+						if (board.y == board.ui_size) {
+							collision_type = 'R';
+							collision = true;
+							finish = true;
+							break;
+						}
+						else { 
+							atom2 = true; 
+							collision = true; 
+							collision_type = 'r';
+						}	
+					}
+					else if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size - 1 == board.atom_position_list[a]) {//atom góra
+						collision_type = 'H';
+						finish = true;
+						collision = true;
+						break;
+					}		
+					if (atom1 && atom2) {//atom prawa góra i lewa góra
+						collision_type = 'R';
+						collision = true;
+						finish = true;
+						break;
+					}
+					a++;
+				}
+				if (!collision && !atom1 && !atom2) {//brak atomów nad kursorem
+					board.y--;
+					a = 0;
+				}
+				if (board.y == 1) {//czy dotarliœmy do koñca
+					finish = true;
+					break;
+				}
+			}
+			break;
+			//kursor w dó³
+		case 'd':
+			collision = false;
+			atom1 = false, atom2 = false;
+			while (!collision) {
+				while (a != board.atom_position_list.size()) {
+					//atom lewy dó³
+					if ((board.x + board.y * (board.ui_size + 1)) + board.ui_size == board.atom_position_list[a]) {
+						if (board.y == 0) {
+							collision_type = 'R';
+							collision = true;
+							finish = true;
+							break;
+						}
+						else {
+							atom1 = true;
+							collision = true;
+							collision_type = 'r';
+						}
+					}
+					//atom prawy dó³
+					else if ((board.x + board.y * (board.ui_size + 1)) + board.ui_size + 2 == board.atom_position_list[a]) {
+						if (board.y == 0) {
+							collision_type = 'R';
+							collision = true;
+							finish = true;
+							break;
+						}
+						else {
+							atom2 = true;
+							collision = true;
+							collision_type = 'l';
+						}
+					}
+					//atom dó³
+					else if ((board.x + board.y * (board.ui_size + 1)) + board.ui_size + 1 == board.atom_position_list[a]) {
+						collision_type = 'H';
+						finish = true;
+						collision = true;
+						break;
+					}
+					//atom lewy dó³ i prawy dó³
+					if (atom1 && atom2) {
+						collision_type = 'R';
+						collision = true;
+						finish = true;
+						break;
+					}
+					a++;
+				}
+				
+				if (!collision && !atom1 && !atom2) {
+					board.y++;
+					a = 0;
+				}
+				if (board.y == board.ui_size) {//czy dotarliœmy do koñca
+					finish = true;
+					break;
+				}
+			}
+			break;
+			//kursor w prawo
+		case 'r':
+			collision = false;
+			atom1 = false, atom2 = false;
+			while (!collision) {
+				while (a != board.atom_position_list.size()) {
+					if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size == board.atom_position_list[a]) {					//atom prawa góra
+						if (board.x == 0) {
+							collision_type = 'R';
+							collision = true;
+							finish = true;
+							break;
+						}
+						else {
+							atom1 = true;
+							collision = true;
+							collision_type = 'd';
+						}
+					}
+					else if ((board.x + board.y * (board.ui_size + 1)) + board.ui_size + 2 == board.atom_position_list[a]) {					//atom prawy dó³
+						if (board.x == 0) {
+							collision_type = 'R';
+							collision = true;
+							finish = true;
+							break;
+						}
+						else {
+							atom2 = true;
+							collision = true;
+							collision_type = 'u';
+						}
+					}
+					else if ((board.x + board.y * (board.ui_size + 1)) + 1 == board.atom_position_list[a]) {//atom prawy
+						collision_type = 'H';
+						finish = true;
+						collision = true;
+						break;
+					}
+					if (atom1 && atom2) {//atom prawa góra i prawy dó³
+						collision_type = 'R';
+						collision = true;
+						finish = true;
+						break;
+					}
+					a++;
+				}
+				if (!collision && !atom1 && !atom2) {
+					board.x++;
+					a = 0;
+				}
+				if (board.x == board.ui_size) {//czy dotarliœmy do koñca
+					finish = true;
+					break;
+				}
 
-	unsigned a = 0;
-	switch (collision_type) {
-		//kursor w górê
-	case 'u':
-		collision = false;
-		atom1 = false, atom2 = false;
-		while (!collision) {
-			while (a != board.atom_position_list.size()) {
-				//atom prawa góra
-				if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size == board.atom_position_list[a]) {
-					if (board.y == board.ui_size) {
-						collision_type = 'R';
+			}
+			break;
+			//kursor w lewo
+		case 'l':
+			collision = false;
+			atom1 = false, atom2 = false;
+			while (!collision) {
+				while (a != board.atom_position_list.size()) {
+					//atom lewa góra
+					if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size - 2 == board.atom_position_list[a]) {
+						if (board.x == board.ui_size) {
+							collision_type = 'R';
+							collision = true;
+							finish = true;
+							break;
+						}
+						else {
+							atom1 = true;
+							collision = true;
+							collision_type = 'd';
+						}
+					}
+					//atom lewy dó³
+					else if ((board.x + board.y * (board.ui_size + 1)) + board.ui_size == board.atom_position_list[a]) {
+						if (board.x == board.ui_size) {
+							collision_type = 'R';
+							collision = true;
+							finish = true;
+							break;
+						}
+						else {
+							atom2 = true;
+							collision = true;
+							collision_type = 'u';
+						}
+					}
+					//atom lewy
+					else if ((board.x + board.y * (board.ui_size + 1)) - 1 == board.atom_position_list[a]) {
+						collision_type = 'H';
+						finish = true;
 						collision = true;
 						break;
 					}
-					else
-						atom1 = true;
-				}
-				//atom lewa góra
-				else if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size - 2 == board.atom_position_list[a]) {
-					if (board.y == board.ui_size) {
+					//atom lewa góra i lewy dó³
+					if (atom1 && atom2) {
 						collision_type = 'R';
 						collision = true;
+						finish = true;
 						break;
 					}
-					else
-						atom2 = true;
+					a++;
 				}
-				//atom góra
-				else if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size - 1 == board.atom_position_list[a]) {
-					collision_type = 'H';
-					//finish true;
-					collision = true;
+				
+				if (!collision && !atom1 && !atom2) {
+					board.x--;
+					a = 0;
+				}
+				
+				if (board.x == 0) {//czy dotarliœmy do koñca
+					finish = true;
 					break;
 				}
-				//atom prawa góra i lewa góra
-				else if (atom1 && atom2) {
-					collision_type = 'R';
-					collision = true;
-					//finish true;
-					break;
-				}
-				a++;
-			}
-			//atom prawa góra
-			if (atom1) {
-				collision = true;
-				collision_type = 'l';
-			}
-			//atom lewa góra
-			else if (atom2) {
-				collision = true;
-				collision_type = 'r';
-			}
-			//brak atomów nad kursorem
-			else if (!collision && !atom1 && !atom2) {
-				board.y--;
-				a = 0;
-			}
-		}
-		break;
-		//kursor w dó³
-	case 'd':
-		collision = false;
-		atom1 = false, atom2 = false;
-		while (!collision) {
-			while (a != board.atom_position_list.size()) {
-				//atom lewy dó³
-				if ((board.x + board.y * (board.ui_size + 1)) + board.ui_size == board.atom_position_list[a]) {
-					if (board.y == 0) {
-						collision_type = 'R';
-						collision = true;
-						break;
-					}
-					else
-						atom1 = true;
-				}
-				//atom prawy dó³
-				else if ((board.x + board.y * (board.ui_size + 1)) + board.ui_size + 2 == board.atom_position_list[a]) {
-					if (board.y == 0) {
-						collision_type = 'R';
-						collision = true;
-						break;
-					}
-					else
-						atom2 = true;
-				}
-				//atom dó³
-				else if ((board.x + board.y * (board.ui_size + 1)) + board.ui_size + 1 == board.atom_position_list[a]) {
-					collision_type = 'H';
-					//finish true;
-					collision = true;
-					break;
-				}
-				//atom lewy dó³ i prawy dó³
-				else if (atom1 && atom2) {
-					collision_type = 'R';
-					collision = true;
-					//finish true;
-					break;
-				}
-				a++;
-			}
-			//atom lewy dó³
-			if (atom1) {
-				collision = true;
-				collision_type = 'r';
-			}
-			//atom prawy dó³
-			else if (atom2) {
-				collision = true;
-				collision_type = 'l';
-			}
-			if (!collision && !atom1 && !atom2) {
-				board.y++;
-				//distance++;
-				a = 0;
-			}
-		}
-		break;
-		//kursor w prawo
-	case 'r':
-		collision = false;
-		atom1 = false, atom2 = false;
-		while (!collision) {
-			while (a != board.atom_position_list.size()) {
-				//atom prawa góra
-				if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size == board.atom_position_list[a]) {
-					if (board.x == 0) {
-						collision_type = 'R';
-						collision = true;
-						break;
-					}
-					else
-						atom1 = true;
-				}
-				//atom prawy dó³
-				else if ((board.x + board.y * (board.ui_size + 1)) + board.ui_size + 2 == board.atom_position_list[a]) {
-					if (board.x == 0) {
-						collision_type = 'R';
-						collision = true;
-						break;
-					}
-					else
-						atom2 = true;
-				}
-				//atom prawy
-				else if ((board.x + board.y * (board.ui_size + 1)) + 1 == board.atom_position_list[a]) {
-					collision_type = 'H';
-					//finish true;
-					collision = true;
-					break;
-				}
-				//atom prawa góra i prawy dó³
-				else if (atom1 && atom2) {
-					collision_type = 'R';
-					collision = true;
-					//finish true;
-					break;
-				}
-				a++;
-			}
-			//atom prawa góra
-			if (atom1) {
-				collision = true;
-				collision_type = 'd';
-				break;
-			}
-			//atom prawy dó³
-			else if (atom2) {
-				collision = true;
-				collision_type = 'u';
-				break;
-			}
-			if (!collision && !atom1 && !atom2) {
-				board.x++;
-				//distance++;
-				a = 0;
-			}
-		}
-		break;
-	//kursor w lewo
-	case 'l':
-		collision = false;
-		atom1 = false, atom2 = false;
-		while (!collision) {
-			while (a != board.atom_position_list.size()) {
-				//atom lewa góra
-				if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size - 2 == board.atom_position_list[a]) {
-					if (board.x == board.ui_size) {
-						collision_type = 'R';
-						collision = true;
-						break;
-					}
-					else
-						atom1 = true;
-				}
-				//atom lewy dó³
-				else if ((board.x + board.y * (board.ui_size + 1)) + board.ui_size == board.atom_position_list[a]) {
-					if (board.x == board.ui_size) {
-						collision_type = 'R';
-						collision = true;
-						break;
-					}
-					else
-						atom2 = true;
-				}
-				//atom lewy
-				else if ((board.x + board.y * (board.ui_size + 1)) - 1 == board.atom_position_list[a]) {
-					collision_type = 'H';
-					//finish true;
-					collision = true;
-					break;
-				}
-				//atom lewa góra i lewy dó³
-				else if (atom1 && atom2) {
-					collision_type = 'R';
-					collision = true;
-					//finish true;
-					break;
-				}
-				a++;
-			}
-			//atom lewa góra
-			if (atom1) {
-				collision = true;
-				collision_type = 'd';
-				break;
-			}
-			//atom lewy dó³
-			else if (atom2) {
-				collision = true;
-				collision_type = 'u';
-				break;
-			}
-			if (!collision && !atom1 && !atom2) {
-				board.x--;
-				//distance++;
-				a = 0;
-			}
-		}
-		break;
 
-	
-	}//end of switch
-	std::string coordinates = "x" + std::to_string(board.x) + "y" + std::to_string(board.y);
-	std::cout << collision_type;
+			}
+			break;
+
+		}//end of switch
+		std::string coordinates = "x" + std::to_string(board.x) + "y" + std::to_string(board.y);
+		std::cout << collision_type << coordinates;
+	}
 	board.y = y_init;
 	board.x = x_init;
-	return coordinates;
 }
 
 void start_prompt(board& board) {
@@ -380,7 +375,7 @@ void use_cursor(board& board) {
 		else if (board.y == 0) drctn = 'd';
 		else if (board.x == board.ui_size) drctn = 'l';
 		else std::cout << "AAAAAA";
-		std::cout << ray_shoot(board, drctn);
+		ray_shoot(board, drctn);
 
 		break;
 

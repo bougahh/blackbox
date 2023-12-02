@@ -4,6 +4,7 @@
 #include <ctime>
 #include <algorithm>
 #include <string>
+#include <tuple>
 
 //plansza
 struct board {
@@ -12,6 +13,7 @@ struct board {
 
 	std::vector <char> char_board;
 	std::vector <unsigned> atom_position_list = {};
+	std::vector <std::tuple<unsigned, unsigned, unsigned, unsigned, char> > display;
 	char player_input = 'w';
 };
 
@@ -61,6 +63,10 @@ void random_atom_positions(board& board) {
 		}
 
 	} while (error_present);
+}
+
+void shoot_history(board& board, unsigned x_init, unsigned y_init, char collision_type) {
+	board.display.push_back(std::make_tuple(x_init, y_init, board.x, board.y, collision_type));
 }
 
 void ray_shoot(board& board, char start_direction) {
@@ -122,8 +128,10 @@ void ray_shoot(board& board, char start_direction) {
 					board.y--;
 					a = 0;
 				}
-				if (board.y == 1) {//czy dotarliœmy do koñca
+				if (board.y == 0) {//czy dotarliœmy do koñca
+					collision_type = 'E';
 					finish = true;
+
 					break;
 				}
 			}
@@ -184,6 +192,7 @@ void ray_shoot(board& board, char start_direction) {
 					a = 0;
 				}
 				if (board.y == board.ui_size) {//czy dotarliœmy do koñca
+					collision_type = 'E';
 					finish = true;
 					break;
 				}
@@ -240,6 +249,7 @@ void ray_shoot(board& board, char start_direction) {
 					a = 0;
 				}
 				if (board.x == board.ui_size) {//czy dotarliœmy do koñca
+					collision_type = 'E';
 					finish = true;
 					break;
 				}
@@ -303,6 +313,7 @@ void ray_shoot(board& board, char start_direction) {
 				}
 				
 				if (board.x == 0) {//czy dotarliœmy do koñca
+					collision_type = 'E';
 					finish = true;
 					break;
 				}
@@ -312,8 +323,9 @@ void ray_shoot(board& board, char start_direction) {
 
 		}//end of switch
 		std::string coordinates = "x" + std::to_string(board.x) + "y" + std::to_string(board.y);
-		std::cout << collision_type << coordinates;
+		std::cout << collision_type << coordinates << '\n';
 	}
+	shoot_history(board, x_init, y_init, collision_type);
 	board.y = y_init;
 	board.x = x_init;
 }
@@ -328,15 +340,6 @@ void start_prompt(board& board) {
 		board.ui_size = std::stoi(size_input) + 1;
 	} while (!(board.ui_size - 1 == 5) && !(board.ui_size - 1 == 8) && !(board.ui_size - 1 == 10));
 }
-
-/*
-* wysylamy promien z miejsca oznaczonego x, y
-* sprawdzamy, czy na poczatku zdarzylo sie odbicie lub trafienie
-* jesli nie, to idziemy dalej
-* jezeli trafimy na trafienie, to bierzemy x lub y (ktorekolwiek bylo 0 lub board.ui_size) i je zwracamy
-* jezeli trafimy na 2 atomy powodujace odbicie, to bierzemy x lub y (ktorekolwiek bylo 0 lub board.ui_size) i je zwracamy
-* jezeli trafimy na atom powodujacy rykoszet, to odpowienio zmieniamy trase promienia (pamietac by zapisac poczatkowe x, y)!
-*/
 
 void use_cursor(board& board) {
 	char drctn = ' ';
@@ -389,34 +392,48 @@ void use_cursor(board& board) {
 void print_board(board& game_board) {
 	//system("CLS");
 	std::cout << "\n\n";
-	for (unsigned col = 0; col <= game_board.ui_size; col++) {
-		std::cout << ' ';
-		for (unsigned row = 0; row <= game_board.ui_size; row++) {
-			unsigned printer_position = row + col * (game_board.ui_size + 1);
+	for (unsigned row = 0; row <= game_board.ui_size; row++) {
+		for (unsigned col = 0; col <= game_board.ui_size; col++) {
+			unsigned printer_position = col + row * (game_board.ui_size + 1);
 			unsigned position = game_board.x + game_board.y * (game_board.ui_size + 1);
 
 			//sprawdza czy w miejscu jest atom
 			bool atom_is_here = false;
-			if ((row != 0) || (row != game_board.ui_size) || (col != 0) || (col != game_board.ui_size))
+			if ((col != 0) || (col != game_board.ui_size) || (row != 0) || (row != game_board.ui_size))
 				for (unsigned i = 0; i < game_board.atom_position_list.size(); i++)
 					if (game_board.atom_position_list[i] == printer_position) atom_is_here = true;
+			for (unsigned i = 0; i < game_board.display.size(); i++) {
+				/*
+				if (row == 0) {
+					if (std::get <3>(game_board.display[i]) == 'H') {
 
-
-			if ((position == printer_position) && (col == game_board.y)) std::cout << '@';
-			else if (row == 0) {
-				if (col == 0) std::cout << '/';
-				else if (col == game_board.ui_size) std::cout << '\\';
+					}
+				}
+				*/
+				if(row == 0 && col == 0){
+					unsigned a = std::get<0>(game_board.display[i]), b = std::get<1>(game_board.display[i]), c = std::get<2>(game_board.display[i]), d = std::get<3>(game_board.display[i]);
+					char e = std::get<4>(game_board.display[i]);
+					std::string output = std::to_string(a) + ' ' + std::to_string(b) + ' ' + std::to_string(c) + ' ' + std::to_string(d) + ' ' + e + '\n';
+					std::cout << output;
+				}
+			}
+			
+			
+			if ((position == printer_position) && (row == game_board.y)) std::cout << '@';
+			else if (col == 0) {
+				if (row == 0) std::cout << '/';
+				else if (row == game_board.ui_size) std::cout << '\\';
 				else std::cout << '=';
 			}
-			else if (row == game_board.ui_size) {
-				if (col == 0) std::cout << '\\';
-				else if (col == game_board.ui_size) std::cout << '/';
+			else if (col == game_board.ui_size) {
+				if (row == 0) std::cout << '\\';
+				else if (row == game_board.ui_size) std::cout << '/';
 				else std::cout << '=';
 			}
-			else if (col == 0 || col == game_board.ui_size) std::cout << '=';
+			else if (row == 0 || row == game_board.ui_size) std::cout << '=';
 			else if (atom_is_here) std::cout << 'O';
-			else std::cout << printer_position;
-			std::cout << '\t';
+			else std::cout << '-';
+			std::cout << ' ';
 		}
 		std::cout << '\n';
 	}

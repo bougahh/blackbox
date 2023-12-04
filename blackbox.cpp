@@ -1,38 +1,53 @@
 #include <iostream>
-#include <vector>
 #include <cstdlib>
 #include <ctime>
-#include <algorithm>
-#include <string>
-#include <tuple>
-#include <utility>
+#include <cstdlib>
+#include <cstring>
+#include <istream>
+
+
 //plansza
-struct board {
+struct Board {
 	unsigned ui_size = 1;
 	unsigned x = ui_size - 1, y = ui_size - 1;
+	unsigned atom_amount = 3;
 
 	unsigned E_amount = 0;
 
-	std::vector <char> char_board;
-	std::vector <unsigned> atom_position_list = {};
-	std::vector <std::tuple<unsigned, unsigned, unsigned, unsigned, char> > display;
+	unsigned atom_position_list[8] = {};
+	//std::vector <std::tuple<unsigned, unsigned, unsigned, unsigned, char> > display;
 	char player_input = 'w';
 };
+void bubble_sort(unsigned arr[], unsigned size) {
 
-void random_atom_positions(board& board) {
+	unsigned buffer;
+	for (unsigned i = 0; i < (size - 1); i++)
+	{
+		for (unsigned j = 0; j < (size - i - 1); j++)
+		{
+			if (arr[j] > arr[j + 1])
+			{
+				buffer = arr[j];
+				arr[j] = arr[j + 1];
+				arr[j + 1] = buffer;
+			}
+		}
+	}
+}
 
-	unsigned atom_amount = 3;
+void random_atom_positions(Board& board) {
+
 	bool error_present = false;
 
 	switch (board.ui_size) {
 	case 6:
-		atom_amount = 3;
+		board.atom_amount = 3;
 		break;
 	case 9:
-		atom_amount = 5;
+		board.atom_amount = 5;
 		break;
 	case 11:
-		atom_amount = 8;
+		board.atom_amount = 8;
 		break;
 	}
 	srand(time(NULL));
@@ -40,25 +55,24 @@ void random_atom_positions(board& board) {
 	do {
 		error_present = false;
 		//generuje miejsca na podstawie calej planszy od pierwszego miejsca na atomy do ostatniego (nie sa wykluczone brzegi)
-		for (unsigned i = 0; i < atom_amount; i++)
-			board.atom_position_list.push_back((rand() % ((board.ui_size * board.ui_size) - 4) + board.ui_size + 2));
+		for (unsigned i = 0; i < board.atom_amount; i++)
+			board.atom_position_list[i] = ((rand() % ((board.ui_size * board.ui_size) - 4) + board.ui_size + 2));
 
-		std::sort(board.atom_position_list.begin(), board.atom_position_list.end());
+		bubble_sort(board.atom_position_list, board.atom_amount);
+
 		//sprawdzamy czy miejsca sie powtarzaja i generujemy liczby ponownie, jesli tak
-		for (unsigned i = 1; i < board.atom_position_list.size(); i++) {
+		for (unsigned i = 1; i < board.atom_amount; i++) {
 			if (board.atom_position_list[i - 1] == board.atom_position_list[i] || board.atom_position_list[i - 1] == board.atom_position_list[i] + 1 || board.atom_position_list[i - 1] == board.atom_position_list[i] - 1 || board.atom_position_list[i - 1] == board.atom_position_list[i] + board.ui_size + 1 || board.atom_position_list[i - 1] == board.atom_position_list[i] - (board.ui_size + 1)) {
 				error_present = true;
-				board.atom_position_list.resize(0);
 				break;
 			}
 		}
 
 		//sprawdzamy czy sa atomy na prawej lub lewej stronie planszy i generujemy ponownie, jesli tak
-		for (unsigned i = 0; i < board.atom_position_list.size(); i++) {
+		for (unsigned i = 0; i < board.atom_amount; i++) {
 			for (unsigned j = 1; j < board.ui_size; j++) {
 				if (board.atom_position_list[i] == j * (board.ui_size + 1) || board.atom_position_list[i] == ((j + 1) * (board.ui_size + 1)) - 1) {
 					error_present = true;
-					board.atom_position_list.resize(0);
 					break;
 				}
 			}
@@ -66,12 +80,12 @@ void random_atom_positions(board& board) {
 
 	} while (error_present);
 }
-
+/*
 void shoot_history(board& board, unsigned x_init, unsigned y_init, char collision_type) {
 	board.display.push_back(std::make_tuple(x_init, y_init, board.x, board.y, collision_type));
 }
-
-void ray_shoot(board& board, char start_direction) {
+*/
+void ray_shoot(Board& board, char start_direction) {
 	unsigned x_init = board.x, y_init = board.y;
 
 	bool 
@@ -90,7 +104,7 @@ void ray_shoot(board& board, char start_direction) {
 			collision = false;
 			atom1 = false, atom2 = false;
 			while (!collision) {
-				while (a != board.atom_position_list.size()) {
+				while (a != board.atom_amount) {
 					if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size == board.atom_position_list[a]) {//atom prawa góra
 						if (board.y == board.ui_size) {
 							collision_type = 'R';
@@ -149,7 +163,7 @@ void ray_shoot(board& board, char start_direction) {
 			collision = false;
 			atom1 = false, atom2 = false;
 			while (!collision) {
-				while (a != board.atom_position_list.size()) {
+				while (a != board.atom_amount) {
 					//atom lewy dó³
 					if ((board.x + board.y * (board.ui_size + 1)) + board.ui_size == board.atom_position_list[a]) {
 						if (board.y == 0) {
@@ -212,7 +226,7 @@ void ray_shoot(board& board, char start_direction) {
 			collision = false;
 			atom1 = false, atom2 = false;
 			while (!collision) {
-				while (a != board.atom_position_list.size()) {
+				while (a != board.atom_amount) {
 					if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size == board.atom_position_list[a]) {					//atom prawa góra
 						if (board.x == 0) {
 							collision_type = 'R';
@@ -271,7 +285,7 @@ void ray_shoot(board& board, char start_direction) {
 			collision = false;
 			atom1 = false, atom2 = false;
 			while (!collision) {
-				while (a != board.atom_position_list.size()) {
+				while (a != board.atom_amount) {
 					//atom lewa góra
 					if ((board.x + board.y * (board.ui_size + 1)) - board.ui_size - 2 == board.atom_position_list[a]) {
 						if (board.x == board.ui_size) {
@@ -333,26 +347,26 @@ void ray_shoot(board& board, char start_direction) {
 			break;
 
 		}//end of switch
-		std::string coordinates = "x" + std::to_string(board.x) + "y" + std::to_string(board.y);
-		std::cout << collision_type << coordinates << '\n';
+		//std::string coordinates = "x" + std::to_string(board.x) + "y" + std::to_string(board.y);
+		std::cout << collision_type << /*coordinates << */ '\n';
 	}
-	shoot_history(board, x_init, y_init, collision_type);
+	//shoot_history(board, x_init, y_init, collision_type);
 	board.y = y_init;
 	board.x = x_init;
 }
 
-void start_prompt(board& board) {
+void start_prompt(Board& board) {
 	do {
 		system("CLS");
-		std::string size_input = "6";
+		char input[2];
+		unsigned size_input;
 		std::cout << "Witaj w grze Black Box! Aby zwyciezyc, znajdz kazdy atom na planszy za pomoca promieni, ktore wystrzeliwujesz z brzegow planszy\nPodaj wielkosc planszy (dostepne sa rozmiary: 5, 8, 10): ";
-
-		std::getline(std::cin, size_input);
-		board.ui_size = std::stoi(size_input) + 1;
+		std::cin >> input;
+		board.ui_size = std::atoi(input) + 1;
 	} while (!(board.ui_size - 1 == 5) && !(board.ui_size - 1 == 8) && !(board.ui_size - 1 == 10));
 }
 
-void use_cursor(board& board) {
+void use_cursor(Board& board) {
 	char drctn = ' ';
 	switch (board.player_input) {
 	case 'W':
@@ -399,7 +413,7 @@ void use_cursor(board& board) {
 		 
 	}
 }
-
+/*
 std::vector<std::pair<unsigned,char>> get_result(board& board, char side) {
 	std::vector <std::pair<unsigned, char>> display = {};
 	for (unsigned i = 0; i < board.display.size(); i++) {
@@ -470,12 +484,19 @@ void print_bottom_result(board& game_board) {
 	}
 	std::cout << bottom_string << '\n';
 }
-/*
-void print_left_result(board& board) {
 
+void print_left_result(board& game_board, unsigned row) {
+	std::vector <std::pair<unsigned, char>> left_display = get_result(game_board, 'l');
+	for (unsigned i = 0; i < left_display.size(); i++){
+		if (!left_display[i].first) {
+			left_display[i].first = i;
+			left_display[i].second = ' ';
+		}
+	}
+	std::cout << left_display[row].second;
 }
 */
-void print_board(board& game_board) {
+void print_board(Board& game_board) {
 	//system("CLS");
 	std::cout << "\n\n";
 	for (unsigned row = 0; row <= game_board.ui_size; row++) {
@@ -486,7 +507,7 @@ void print_board(board& game_board) {
 			//sprawdza czy w miejscu jest atom
 			bool atom_is_here = false;
 			if ((col != 0) || (col != game_board.ui_size) || (row != 0) || (row != game_board.ui_size))
-				for (unsigned i = 0; i < game_board.atom_position_list.size(); i++)
+				for (unsigned i = 0; i < game_board.atom_amount; i++)
 					if (game_board.atom_position_list[i] == printer_position) atom_is_here = true;
 
 			/*
@@ -519,13 +540,13 @@ void print_board(board& game_board) {
 			*/
 
 			if (printer_position % (game_board.ui_size + 1) == 0) {
-				print_left_result(game_board);
+				//print_left_result(game_board, row);
 			}
 			
 			if ((position == printer_position) && (row == game_board.y)) std::cout << '@';
 			else if (col == 0) {
 				if (row == 0) {
-					print_top_result(game_board);
+					//print_top_result(game_board);
 					std::cout << '/';
 				}
 				else if (row == game_board.ui_size) {
@@ -545,7 +566,7 @@ void print_board(board& game_board) {
 			
 			if (printer_position == ((game_board.ui_size + 1) * (game_board.ui_size + 1)) - 1) {
 				std::cout << '\n';
-				print_bottom_result(game_board);
+				//print_bottom_result(game_board);
 			}
 			
 		}
@@ -557,20 +578,21 @@ int main() {
 	//moze zmienia znaki nwm
 	//system("chcp 852");
 
-	board game_board;
+	Board game_board;
 	start_prompt(game_board);
 	random_atom_positions(game_board);
 
 	game_board.x = game_board.ui_size - 1;
 	game_board.y = game_board.ui_size;
 
+	char input[2];
+
 	do{
 		print_board(game_board);
 
 		std::cout << "\n\nco robisz wariacie: ";
-		std::string a;
-		std::getline(std::cin,a);
-		game_board.player_input = a[0];
+		std::cin.getline(input, 1);
+		game_board.player_input = input;
 		if (game_board.player_input == 'k') {
 			std::cout << "dzieki za gre!";
 			return 0;

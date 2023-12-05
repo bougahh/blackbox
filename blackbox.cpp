@@ -557,7 +557,7 @@ void print_board(Board& game_board) {
 				//print_left_result(game_board, row);
 
 			}
-			
+			*/
 			if ((position == printer_position) && (row == game_board.y)) std::cout << '@';
 			else if (col == 0) {
 				if (row == 0) {

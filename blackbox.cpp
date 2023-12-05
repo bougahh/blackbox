@@ -16,7 +16,7 @@ struct Board {
 
 	unsigned atom_position_list[8] = {};
 	//std::vector <std::tuple<unsigned, unsigned, unsigned, unsigned, char> > display;
-	char player_input = 'w';
+	char player_input[2];
 };
 void bubble_sort(unsigned arr[], unsigned size) {
 
@@ -368,7 +368,7 @@ void start_prompt(Board& board) {
 
 void use_cursor(Board& board) {
 	char drctn = ' ';
-	switch (board.player_input) {
+	switch (board.player_input[0]) {
 	case 'W':
 	case 'w':
 		if (board.y == 0) board.y = board.ui_size;
@@ -585,15 +585,15 @@ int main() {
 	game_board.x = game_board.ui_size - 1;
 	game_board.y = game_board.ui_size;
 
-	char input[2];
+
 
 	do{
 		print_board(game_board);
-
+		char input[2];
 		std::cout << "\n\nco robisz wariacie: ";
-		std::cin.getline(input, 1);
-		game_board.player_input = input;
-		if (game_board.player_input == 'k') {
+		std::cin.getline(input, 2);
+		game_board.player_input[0] = input[0];
+		if (game_board.player_input[0] == 'k') {
 			std::cout << "dzieki za gre!";
 			return 0;
 		}

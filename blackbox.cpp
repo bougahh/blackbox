@@ -4,23 +4,48 @@
 #include <cstdlib>
 #include <istream>
 #include <cstring>
+#include <chrono>
+#include <thread>
 
 //plansza
 struct Board {
-	unsigned ui_size = 1;
-	unsigned x = ui_size - 1, y = ui_size - 1;
+	unsigned ui_size;
+	unsigned x, y;
 
-	unsigned atom_amount = 3;
-	unsigned atom_position_list[8] = {};
+	unsigned atom_amount;
+	unsigned atom_position_list[8];
 
-	unsigned shot_count = 0;
-	unsigned* shot_history = nullptr;
+	unsigned user_guess_list[8];
+	unsigned guess_count;
+
+	unsigned shot_count;
+	unsigned shot_history[400];
+
+	unsigned E_index;
+
+	bool stop_game;
 
 	// 0 -- E, 1 -- H, 2 -- R
-	unsigned* shot_type_history = nullptr;
-	//std::vector <std::tuple<unsigned, unsigned, unsigned, unsigned, char> > display;
-
+	unsigned shot_type_history[100];
 	char player_input[2];
+
+	void set_game() {
+		ui_size = 1;
+		x = ui_size - 1, y = ui_size - 1;
+		atom_amount = 3;
+		guess_count = 0;
+		shot_count = 0;
+		E_index = 0;
+		stop_game = false;
+		for (unsigned i : atom_position_list)
+			i = 0;
+		for (unsigned i : user_guess_list)
+			i = 0;
+		for (unsigned i : shot_type_history)
+			i = 0;
+		for (unsigned i : shot_history)
+			i = 0;
+	}
 };
 
 void bubble_sort(unsigned arr[], unsigned size) {
@@ -39,13 +64,6 @@ void bubble_sort(unsigned arr[], unsigned size) {
 		}
 	}
 }
-/*
-void add_char_to_char_arr(char* array, char character){
-	unsigned length = std::strlen(array);
-    array[length] = character;
-    array[length + 1] = '\0';
-}
-*/
 void random_atom_positions(Board& board) {
 
 	bool error_present = false;
@@ -93,57 +111,23 @@ void random_atom_positions(Board& board) {
 }
 
 void make_shot_history(Board& board, unsigned init_x, unsigned init_y, unsigned cllsn_type) {
-	board.shot_count += 4;
 	bool duplicate = false;
-	if (board.shot_history == nullptr) {
-		board.shot_history = new unsigned[4];
-		// 0 -- E, 1 -- H, 2 -- R
-		board.shot_type_history = new unsigned[(board.shot_count / 4) + 1];
-
-		for (unsigned i = 0; i < board.shot_count; i += 4) {
-			board.shot_history[i] = board.x;
-			board.shot_history[i + 1] = board.y;
-			board.shot_history[i + 2] = init_x;
-			board.shot_history[i + 3] = init_y;
-
-			board.shot_type_history[i] = cllsn_type;
+	for (unsigned i = 0; i < board.shot_count; i += 4) {
+		if ((board.shot_history[i + 2] == init_x) && (board.shot_history[i + 3] == init_y)) {
+			std::cout << "juz stad strzelales!";
+			duplicate = true;
+			break;
 		}
 	}
-	else{
-		for (unsigned i = 0; i < board.shot_count; i += 4) {
-			if ((board.shot_history[i + 2] == init_x) && (board.shot_history[i + 3] == init_y)) {
-				std::cout << "juz stad strzelales!";
-				duplicate = true;
-				break;
-				board.shot_count -= 4;
-			}
+	if (!duplicate) {
+			board.shot_history[board.shot_count] = board.x;
+			board.shot_history[board.shot_count + 1] = board.y;
+			board.shot_history[board.shot_count + 2] = init_x;
+			board.shot_history[board.shot_count + 3] = init_y;
+
+			board.shot_type_history[(board.shot_count / 4)] = cllsn_type;
+			board.shot_count += 4;
 		}
-		if (!duplicate) {
-			unsigned* sh_temp = new unsigned[sizeof(int) * board.shot_count];
-			unsigned* sh_type_temp = new unsigned[sizeof(int) * ((board.shot_count / 4) + 1)];
-
-			for (unsigned i = 0; i < board.shot_count; i += 4) {
-				sh_temp[i] = board.shot_history[i];
-				sh_temp[i + 1] = board.shot_history[i + 1];
-				sh_temp[i + 2] = board.shot_history[i + 2];
-				sh_temp[i + 3] = board.shot_history[i + 3];
-
-				sh_type_temp[i] = board.shot_type_history[i];
-			}
-			sh_temp[board.shot_count - 4] = board.x;
-			sh_temp[board.shot_count - 3] = board.y;
-			sh_temp[board.shot_count - 2] = init_x;
-			sh_temp[board.shot_count - 1] = init_y;
-
-			sh_type_temp[(board.shot_count / 4) - 1] = cllsn_type;
-
-			delete[] board.shot_history;
-			board.shot_history = sh_temp;
-
-			delete[] board.shot_type_history;
-			board.shot_type_history = sh_type_temp;
-		}
-	}
 }
 
 void ray_shoot(Board& board, char start_direction) {
@@ -431,16 +415,21 @@ void ray_shoot(Board& board, char start_direction) {
 
 void start_prompt(Board& board) {
 	do {
-		//system("CLS");
 		char input[3];
-		std::cout << "Witaj w grze Black Box! Aby zwyciezyc, znajdz kazdy atom na planszy za pomoca promieni, ktore wystrzeliwujesz z brzegow planszy\nPodaj wielkosc planszy (dostepne sa rozmiary: 5, 8, 10): ";
+		std::cout << "Witaj w grze Black Box! Aby zwyciezyc, znajdz kazdy atom na planszy za pomoca promieni, ktore wystrzeliwujesz z brzegow planszy\n\nMozesz zawsze opuscic gre poprzez wpisanie litery 'k'\n\nPodaj wielkosc planszy (dostepne sa rozmiary: 5, 8, 10): ";
 		std::cin >> input;
+		if (input[0] == 'k') {
+			board.stop_game = true;
+			break;
+		}
 		board.ui_size = std::atoi(input) + 1;
+		std::cout << "\n\n\n";
 	} while (!(board.ui_size - 1 == 5) && !(board.ui_size - 1 == 8) && !(board.ui_size - 1 == 10));
 }
 
 void use_cursor(Board& board) {
 	char drctn = ' ';
+	unsigned score = 0;
 	switch (board.player_input[0]) {
 	case 'W':
 	case 'w':
@@ -468,145 +457,105 @@ void use_cursor(Board& board) {
 		if (board.x == board.ui_size) board.x = 0;
 		else if ((board.y == 0 || board.y == board.ui_size) && board.x == board.ui_size - 1) board.x = 1;
 		else board.x++;
-
+		break;
+	case 'o':
+		if (board.x != 0 && board.x != board.ui_size && board.y != 0 && board.y != board.ui_size && board.guess_count < 8) {
+			board.user_guess_list[board.guess_count] = board.x + board.y * (board.ui_size + 1);
+			board.guess_count++;
+		}
+		else std::cout << "za duzo przypuszczanych atomów";
+		board.x = 1;
+		board.y = 0;
 		break;
 	case ' ':
 		if (board.y == board.ui_size) drctn = 'u';
 		else if (board.x == 0) drctn = 'r';
 		else if (board.y == 0) drctn = 'd';
 		else if (board.x == board.ui_size) drctn = 'l';
-		else std::cout << "AAAAAA";
+		else break;
 		ray_shoot(board, drctn);
 
 		break;
-
-	case 'K':
 	case 'k':
-		std::cout << "dziekujemy za gre!";
+		bubble_sort(board.user_guess_list, 8);
+		for (unsigned i = 0; i < board.ui_size; i++) {
+			if (board.atom_position_list[i] == board.user_guess_list[i]) {
+				if (board.atom_position_list != 0)
+					score++;
+			}
+		}
+		std::cout << "Twój wynik to: " << score;
+		break;
+	case 'Q':
+	case 'q':
+		break;
+	default:
+		std::cout << "nie rozpoznaje komendy";
+		break;
 	}
 }
 
 int change_char_in_string(Board board, char* string, unsigned index_j, unsigned index_i) {
-		if (board.shot_type_history[index_j / 4] == 0) {
-			char number = char(index_j + 48);
-			string[index_i] = number;
-			return 0;
-		}
-		else if (board.shot_type_history[index_j / 4] == 1) {
-			string[index_i] = 'H';
-			return 0;
-		}
-
-		else if (board.shot_type_history[index_j / 4] == 2) {
-			string[index_i] = 'R';
-			return 0;
-		}
+	if (board.shot_type_history[index_j / 4] == 1) {
+		string[index_i] = 'H';
 		return 0;
+	}
+	else if (board.shot_type_history[index_j / 4] == 2) {
+		string[index_i] = 'R';
+		return 0;
+	}
+	else {
+		char number = char(board.E_index + 48);
+		string[index_i] = number;
+		board.E_index++;
+		return 0;
+	}
 }
 
-char* generate_result_string(Board board) {
-
+void generate_result_string(Board board, char* real_display) {
+	board.E_index = 0;
 	char display[41];
-	std::fill(display, display + 40, ' ');
+	for (unsigned i = 0; i < 40; i++)
+		display[i] = ' ';
 	for (unsigned j = 0; j < board.shot_count; j += 4) {
+		unsigned i = 0;
 		if (board.shot_history[j + 3] == 0 && board.shot_history[j + 2] > 0 && board.shot_history[j + 2] < board.ui_size) {
-			/*
-			if (board.shot_type_history[j / 4] == 0) {
-				char number = char(j + 48);
-				display[i] = number;
-				break;
-			}
-			else if (board.shot_type_history[j / 4] == 1) {
-				display[i] = 'H';
-				break;
-			}
-
-			else if (board.shot_type_history[j / 4] == 2) {
-				display[i] = 'R';
-				break;
-			}
-			else {
-				break;
-			}
-			*/
-			unsigned i = 0;
-			switch (board.shot_history[j+3]) {
-			case 0:
+			if (board.shot_history[j + 3] == 0)
 				i = board.shot_history[j + 2];
-			case 1:
+			else if (board.shot_history[j + 3] == board.ui_size)
 				i = board.shot_history[j + 2] + 20;
-			}
 			change_char_in_string(board, display, j, i);
 		}
-		else if (board.shot_history[j + 3] == board.ui_size && board.shot_history[j + 2] > 0 && board.shot_history[j + 2] < board.ui_size) {
-			//change_char_in_string(board, display, j, i);
-		
-
+		else if (board.shot_history[j + 2] == 0 && board.shot_history[j + 3] > 0 && board.shot_history[j + 3] < board.ui_size) {
+			if (board.shot_history[j + 2] == 0)
+				i = board.shot_history[j + 3] + 10;
+			else if (board.shot_history[j + 2] == board.ui_size)
+				i = board.shot_history[j + 3] + 30;
+			change_char_in_string(board, display, j, i);
 		}
 	}
-	return display;
+	display[40] = 0;
+	for (unsigned i = 0; i < 41; i++)
+		real_display[i] = display[i];
 }
-/*
-char* print_display(Board& board, unsigned side) {
-	//side: 0 -- up 1 -- right, 2 -- down, 3 -- left
-	char display[11];
-	std::fill(display, display + 10, ' ');
-	switch (side) {
-	case 0:
-		for (unsigned i = 0; i < board.ui_size; i++) {
-			for (unsigned j = 0; j < board.shot_count; j += 4) {
-				if (board.shot_history[j + 3] == 0 && board.shot_history[j + 2] > 0 && board.shot_history[j + 2] < board.ui_size) {
-					if (board.shot_type_history[j / 4] == 0) {
-						char number = char(j + 48);
-						display[i] = number;
-						break;
-					}
-					else if (board.shot_type_history[j / 4] == 1) {
-						display[i] = 'H';
-						break;
-					}
-
-					else if (board.shot_type_history[j / 4] == 2) {
-						display[i] = 'R';
-						break;
-					}
-					else {
-						break;
-					}
-						
-				}//display[j] = (get_shot_type_char(board, j) == 'E') ? char(48 + j) : get_shot_type_char(board, j);
-			}
-		}
-		return display;
-		break;
-	case 1:
-		break;
-	case 2:
-		break;
-	case 3:
-		break;
-	default:
-		std::cout << "BBBBBB!";
-	}
-}
-*/
 void print_board(Board& game_board) {
-	//system("CLS");
-	std::cout << "\n\n";
+	for(unsigned i = 0; i < 3 * game_board.ui_size; i++)
+		std::cout << '\n';
 	for (unsigned row = 0; row <= game_board.ui_size; row++) {
 		for (unsigned col = 0; col <= game_board.ui_size; col++) {
 			unsigned printer_position = col + row * (game_board.ui_size + 1);
 			unsigned position = game_board.x + game_board.y * (game_board.ui_size + 1);
 
 			//sprawdza czy w miejscu jest atom
-			bool atom_is_here = false;
+			bool atom_is_here = false, atom_guess = false;
 			if ((col != 0) || (col != game_board.ui_size) || (row != 0) || (row != game_board.ui_size))
 				for (unsigned i = 0; i < game_board.atom_amount; i++)
 					if (game_board.atom_position_list[i] == printer_position) atom_is_here = true;
+					else if (game_board.user_guess_list[i] == printer_position) atom_guess = true;
 
 			if (col == 0) {
-				//if()
 				//print_left_result(game_board, row);
+
 			}
 			
 			if ((position == printer_position) && (row == game_board.y)) std::cout << '@';
@@ -626,7 +575,17 @@ void print_board(Board& game_board) {
 				else std::cout << '=';
 			}
 			else if (row == 0 || row == game_board.ui_size) std::cout << '=';
-			else if (atom_is_here) std::cout << 'O';
+			else if (game_board.player_input[0] == 'p') {
+				if (atom_is_here) std::cout << 'O'; 
+				else if (atom_guess)std::cout << 'X';
+				else std::cout << '-';
+			}
+			else if (game_board.player_input[0] == 'H') {
+				if (atom_is_here) std::cout << 'O';
+				else std::cout << '-';
+			}
+			else if (atom_guess) std::cout << 'o';
+
 			else std::cout << '-';
 			std::cout << ' ';
 			
@@ -637,40 +596,56 @@ void print_board(Board& game_board) {
 		}
 		std::cout << '\n';
 	}
-	std::cout << *generate_result_string(game_board);
+	//char prnt[41] = "wow";
+	//generate_result_string(game_board ,prnt);
+	//std::cout << prnt;
+	std::cout << game_board.shot_count / 4 << std::endl;
+	std::cout << " end   start  col_id\n  x y | x y\n";
+	for (unsigned i = 0; i < game_board.shot_count; i += 4) {
+		std::cout << "  " << game_board.shot_history[i] << ' ' << game_board.shot_history[i + 1] << "   " << game_board.shot_history[i + 2] << ' ' << game_board.shot_history[i + 3] << '\t' << game_board.shot_type_history[i / 4] << std::endl;
+	}
 }
 
 int main() {
-	//moze zmienia znaki nwm
-	//system("chcp 852");
-
 	Board game_board;
+start:
+	game_board.set_game();
 	start_prompt(game_board);
 	random_atom_positions(game_board);
 
 	game_board.x = 1;
 	game_board.y = 0;
 
-	print_board(game_board);
-	std::cout << "\n\nco robisz wariacie: ";
-	while(true){
+	while(true) {
+		if (game_board.stop_game) {
+			goto end;
+		}
+		print_board(game_board);
+		std::cout << "\n\nco robisz wariacie: ";
 		char input[2];
 		input[0] = '\0';
-		std::cin.getline(input, 2);
-		
-		game_board.player_input[0] = input[0];
-		if (game_board.player_input[0] == 'k') {
-			std::cout << "dzieki za gre!";
-			delete[] game_board.shot_history;
-			delete[] game_board.shot_type_history;
-			return 0;
-		}
-		if ((game_board.player_input[0] == 'w') || (game_board.player_input[0] == 'a') || (game_board.player_input[0] == 's') || (game_board.player_input[0] == 'd') || (game_board.player_input[0] == ' ')) {
-			use_cursor(game_board);
+		if (game_board.player_input[0] == 'H') {
+			std::this_thread::sleep_for(std::chrono::milliseconds(700));
 			print_board(game_board);
-			std::cout << "\n\nco robisz wariacie: ";
 		}
+		else if (game_board.player_input[0] == 'q' || game_board.player_input[0] == 'Q') {
+			game_board.player_input[0] = '\0';
+			goto start;
+		}
+		else if (game_board.player_input[0] == 'p') {
+			std::cout << "\n\nWcisnij Enter, jesli chcesz rozpoczac nowa gre";
+			std::cin.get();
+			goto start;
+		}
+		else {
+			std::cin.get(input, 2);
+			std::cin.clear();
+			std::cin.ignore(200, '\n');
+		}
+		game_board.player_input[0] = input[0];
+			use_cursor(game_board);
 	}
-
+	end:
+	std::cout << "\nDzieki za gre!";
 	return 0;
 }

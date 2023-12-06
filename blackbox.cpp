@@ -2,22 +2,27 @@
 #include <cstdlib>
 #include <ctime>
 #include <cstdlib>
-#include <cstring>
 #include <istream>
-
+#include <cstring>
 
 //plansza
 struct Board {
 	unsigned ui_size = 1;
 	unsigned x = ui_size - 1, y = ui_size - 1;
+
 	unsigned atom_amount = 3;
-
-	unsigned E_amount = 0;
-
 	unsigned atom_position_list[8] = {};
+
+	unsigned shot_count = 0;
+	unsigned* shot_history = nullptr;
+
+	// 0 -- E, 1 -- H, 2 -- R
+	unsigned* shot_type_history = nullptr;
 	//std::vector <std::tuple<unsigned, unsigned, unsigned, unsigned, char> > display;
+
 	char player_input[2];
 };
+
 void bubble_sort(unsigned arr[], unsigned size) {
 
 	unsigned buffer;
@@ -34,7 +39,13 @@ void bubble_sort(unsigned arr[], unsigned size) {
 		}
 	}
 }
-
+/*
+void add_char_to_char_arr(char* array, char character){
+	unsigned length = std::strlen(array);
+    array[length] = character;
+    array[length + 1] = '\0';
+}
+*/
 void random_atom_positions(Board& board) {
 
 	bool error_present = false;
@@ -80,11 +91,61 @@ void random_atom_positions(Board& board) {
 
 	} while (error_present);
 }
-/*
-void shoot_history(board& board, unsigned x_init, unsigned y_init, char collision_type) {
-	board.display.push_back(std::make_tuple(x_init, y_init, board.x, board.y, collision_type));
+
+void make_shot_history(Board& board, unsigned init_x, unsigned init_y, unsigned cllsn_type) {
+	board.shot_count += 4;
+	bool duplicate = false;
+	if (board.shot_history == nullptr) {
+		board.shot_history = new unsigned[4];
+		// 0 -- E, 1 -- H, 2 -- R
+		board.shot_type_history = new unsigned[(board.shot_count / 4) + 1];
+
+		for (unsigned i = 0; i < board.shot_count; i += 4) {
+			board.shot_history[i] = board.x;
+			board.shot_history[i + 1] = board.y;
+			board.shot_history[i + 2] = init_x;
+			board.shot_history[i + 3] = init_y;
+
+			board.shot_type_history[i] = cllsn_type;
+		}
+	}
+	else{
+		for (unsigned i = 0; i < board.shot_count; i += 4) {
+			if ((board.shot_history[i + 2] == init_x) && (board.shot_history[i + 3] == init_y)) {
+				std::cout << "juz stad strzelales!";
+				duplicate = true;
+				break;
+				board.shot_count -= 4;
+			}
+		}
+		if (!duplicate) {
+			unsigned* sh_temp = new unsigned[sizeof(int) * board.shot_count];
+			unsigned* sh_type_temp = new unsigned[sizeof(int) * ((board.shot_count / 4) + 1)];
+
+			for (unsigned i = 0; i < board.shot_count; i += 4) {
+				sh_temp[i] = board.shot_history[i];
+				sh_temp[i + 1] = board.shot_history[i + 1];
+				sh_temp[i + 2] = board.shot_history[i + 2];
+				sh_temp[i + 3] = board.shot_history[i + 3];
+
+				sh_type_temp[i] = board.shot_type_history[i];
+			}
+			sh_temp[board.shot_count - 4] = board.x;
+			sh_temp[board.shot_count - 3] = board.y;
+			sh_temp[board.shot_count - 2] = init_x;
+			sh_temp[board.shot_count - 1] = init_y;
+
+			sh_type_temp[(board.shot_count / 4) - 1] = cllsn_type;
+
+			delete[] board.shot_history;
+			board.shot_history = sh_temp;
+
+			delete[] board.shot_type_history;
+			board.shot_type_history = sh_type_temp;
+		}
+	}
 }
-*/
+
 void ray_shoot(Board& board, char start_direction) {
 	unsigned x_init = board.x, y_init = board.y;
 
@@ -151,7 +212,7 @@ void ray_shoot(Board& board, char start_direction) {
 				}
 				if (board.y == 0) {//czy dotarliœmy do koñca
 					collision_type = 'E';
-					board.E_amount++;
+					//board.E_amount++;
 					finish = true;
 
 					break;
@@ -215,7 +276,7 @@ void ray_shoot(Board& board, char start_direction) {
 				}
 				if (board.y == board.ui_size) {//czy dotarliœmy do koñca
 					collision_type = 'E';
-					board.E_amount++;
+					//board.E_amount++;
 					finish = true;
 					break;
 				}
@@ -273,7 +334,7 @@ void ray_shoot(Board& board, char start_direction) {
 				}
 				if (board.x == board.ui_size) {//czy dotarliœmy do koñca
 					collision_type = 'E';
-					board.E_amount++;
+					//board.E_amount++;
 					finish = true;
 					break;
 				}
@@ -338,7 +399,7 @@ void ray_shoot(Board& board, char start_direction) {
 				
 				if (board.x == 0) {//czy dotarliœmy do koñca
 					collision_type = 'E';
-					board.E_amount++;
+					//board.E_amount++;
 					finish = true;
 					break;
 				}
@@ -351,15 +412,27 @@ void ray_shoot(Board& board, char start_direction) {
 		std::cout << collision_type << /*coordinates << */ '\n';
 	}
 	//shoot_history(board, x_init, y_init, collision_type);
+
+	unsigned cllsn_type_int;
+	switch (collision_type) {
+	case 'E':
+		cllsn_type_int = 0;
+		break;
+	case 'H':
+		cllsn_type_int = 1;
+		break;
+	case 'R':
+		cllsn_type_int = 2;
+	}
+	make_shot_history(board, x_init, y_init, cllsn_type_int);
 	board.y = y_init;
 	board.x = x_init;
 }
 
 void start_prompt(Board& board) {
 	do {
-		system("CLS");
-		char input[2];
-		unsigned size_input;
+		//system("CLS");
+		char input[3];
 		std::cout << "Witaj w grze Black Box! Aby zwyciezyc, znajdz kazdy atom na planszy za pomoca promieni, ktore wystrzeliwujesz z brzegow planszy\nPodaj wielkosc planszy (dostepne sa rozmiary: 5, 8, 10): ";
 		std::cin >> input;
 		board.ui_size = std::atoi(input) + 1;
@@ -410,90 +483,111 @@ void use_cursor(Board& board) {
 	case 'K':
 	case 'k':
 		std::cout << "dziekujemy za gre!";
-		 
 	}
 }
-/*
-std::vector<std::pair<unsigned,char>> get_result(board& board, char side) {
-	std::vector <std::pair<unsigned, char>> display = {};
-	for (unsigned i = 0; i < board.display.size(); i++) {
-		unsigned
-			xi = std::get<0>(board.display[i]),
-			yi = std::get<1>(board.display[i]),
-			xx = std::get<2>(board.display[i]),
-			yy = std::get<3>(board.display[i]);
 
-		char cllsn = std::get<4>(board.display[i]);
+int change_char_in_string(Board board, char* string, unsigned index_j, unsigned index_i) {
+		if (board.shot_type_history[index_j / 4] == 0) {
+			char number = char(index_j + 48);
+			string[index_i] = number;
+			return 0;
+		}
+		else if (board.shot_type_history[index_j / 4] == 1) {
+			string[index_i] = 'H';
+			return 0;
+		}
 
-		switch(side){
-		case 'u':
-			if(yi == 0)
-				display.push_back(std::make_pair(xi, cllsn));
-			break;
-		case 'd':
-			if(yi == board.ui_size)
-				display.push_back(std::make_pair(xi, cllsn));
-			break;
-		case 'l':
-			if (xi == 0)
-				display.push_back(std::make_pair(yi, cllsn));
-			break;
-		case 'r':
-			if (xi == board.ui_size)
-				display.push_back(std::make_pair(yi, cllsn));
-			break;
+		else if (board.shot_type_history[index_j / 4] == 2) {
+			string[index_i] = 'R';
+			return 0;
+		}
+		return 0;
+}
+
+char* generate_result_string(Board board) {
+
+	char display[41];
+	std::fill(display, display + 40, ' ');
+	for (unsigned j = 0; j < board.shot_count; j += 4) {
+		if (board.shot_history[j + 3] == 0 && board.shot_history[j + 2] > 0 && board.shot_history[j + 2] < board.ui_size) {
+			/*
+			if (board.shot_type_history[j / 4] == 0) {
+				char number = char(j + 48);
+				display[i] = number;
+				break;
+			}
+			else if (board.shot_type_history[j / 4] == 1) {
+				display[i] = 'H';
+				break;
+			}
+
+			else if (board.shot_type_history[j / 4] == 2) {
+				display[i] = 'R';
+				break;
+			}
+			else {
+				break;
+			}
+			*/
+			unsigned i = 0;
+			switch (board.shot_history[j+3]) {
+			case 0:
+				i = board.shot_history[j + 2];
+			case 1:
+				i = board.shot_history[j + 2] + 20;
+			}
+			change_char_in_string(board, display, j, i);
+		}
+		else if (board.shot_history[j + 3] == board.ui_size && board.shot_history[j + 2] > 0 && board.shot_history[j + 2] < board.ui_size) {
+			//change_char_in_string(board, display, j, i);
+		
+
 		}
 	}
-	std::sort(display.begin(), display.end());
 	return display;
 }
+/*
+char* print_display(Board& board, unsigned side) {
+	//side: 0 -- up 1 -- right, 2 -- down, 3 -- left
+	char display[11];
+	std::fill(display, display + 10, ' ');
+	switch (side) {
+	case 0:
+		for (unsigned i = 0; i < board.ui_size; i++) {
+			for (unsigned j = 0; j < board.shot_count; j += 4) {
+				if (board.shot_history[j + 3] == 0 && board.shot_history[j + 2] > 0 && board.shot_history[j + 2] < board.ui_size) {
+					if (board.shot_type_history[j / 4] == 0) {
+						char number = char(j + 48);
+						display[i] = number;
+						break;
+					}
+					else if (board.shot_type_history[j / 4] == 1) {
+						display[i] = 'H';
+						break;
+					}
 
-void print_top_result(board& game_board) {
-
-	std::vector <std::pair<unsigned, char>> top_display = get_result(game_board, 'u');
-
-	std::string top_string;
-	top_string.insert(top_string.begin(), 2 * game_board.ui_size, ' ');
-
-	for (unsigned j = 0; j < game_board.ui_size; j++) {
-		for (unsigned i = 0; i < top_display.size(); i++) {
-			if (top_display[i].first == j) {
-				top_string[2 * j] = top_display[i].second;
-				break;
+					else if (board.shot_type_history[j / 4] == 2) {
+						display[i] = 'R';
+						break;
+					}
+					else {
+						break;
+					}
+						
+				}//display[j] = (get_shot_type_char(board, j) == 'E') ? char(48 + j) : get_shot_type_char(board, j);
 			}
 		}
-
+		return display;
+		break;
+	case 1:
+		break;
+	case 2:
+		break;
+	case 3:
+		break;
+	default:
+		std::cout << "BBBBBB!";
 	}
-	std::cout << top_string << '\n';
-}
-
-void print_bottom_result(board& game_board) {
-	std::vector <std::pair<unsigned, char>> bottom_display = get_result(game_board, 'd');
-
-	std::string bottom_string;
-	bottom_string.insert(bottom_string.begin(), 2 * game_board.ui_size, ' ');
-
-	for (unsigned j = 0; j < game_board.ui_size; j++) {
-		for (unsigned i = 0; i < bottom_display.size(); i++) {
-			if (bottom_display[i].first == j) {
-				bottom_string[2 * j] = bottom_display[i].second;
-				break;
-			}
-		}
-
-	}
-	std::cout << bottom_string << '\n';
-}
-
-void print_left_result(board& game_board, unsigned row) {
-	std::vector <std::pair<unsigned, char>> left_display = get_result(game_board, 'l');
-	for (unsigned i = 0; i < left_display.size(); i++){
-		if (!left_display[i].first) {
-			left_display[i].first = i;
-			left_display[i].second = ' ';
-		}
-	}
-	std::cout << left_display[row].second;
 }
 */
 void print_board(Board& game_board) {
@@ -510,43 +604,15 @@ void print_board(Board& game_board) {
 				for (unsigned i = 0; i < game_board.atom_amount; i++)
 					if (game_board.atom_position_list[i] == printer_position) atom_is_here = true;
 
-			/*
-			for (unsigned i = 0; i < game_board.display.size(); i++) {
-				unsigned 
-					xi = std::get<0>(game_board.display[i]),
-					yi = std::get<1>(game_board.display[i]),
-					xx = std::get<2>(game_board.display[i]),
-					yy = std::get<3>(game_board.display[i]);
-
-				char cllsn = std::get<4>(game_board.display[i]);
-				/*
-				if (row == 0) {
-					if (std::get <3>(game_board.display[i]) == 'H') {
-
-					}
-				}
-				
-				if(row == 0 && col == 0){
-					if ((yi == 0) || (yy == 0)) {
-						for (unsigned i = 0; i < game_board.ui_size; i++) {
-							if (xi == i)
-								std::cout << cllsn;
-						}
-					}
-					//std::string output = std::to_string(xi) + ' ' + std::to_string(yi) + ' ' + std::to_string(xx) + ' ' + std::to_string(yy) + ' ' + cllsn + '\n';
-					//std::cout << output;
-				}
-			}
-			*/
-
-			if (printer_position % (game_board.ui_size + 1) == 0) {
+			if (col == 0) {
+				//if()
 				//print_left_result(game_board, row);
 			}
 			
 			if ((position == printer_position) && (row == game_board.y)) std::cout << '@';
 			else if (col == 0) {
 				if (row == 0) {
-					//print_top_result(game_board);
+					//print_display(game_board,0);
 					std::cout << '/';
 				}
 				else if (row == game_board.ui_size) {
@@ -566,12 +632,12 @@ void print_board(Board& game_board) {
 			
 			if (printer_position == ((game_board.ui_size + 1) * (game_board.ui_size + 1)) - 1) {
 				std::cout << '\n';
-				//print_bottom_result(game_board);
 			}
 			
 		}
 		std::cout << '\n';
 	}
+	std::cout << *generate_result_string(game_board);
 }
 
 int main() {
@@ -582,25 +648,29 @@ int main() {
 	start_prompt(game_board);
 	random_atom_positions(game_board);
 
-	game_board.x = game_board.ui_size - 1;
-	game_board.y = game_board.ui_size;
+	game_board.x = 1;
+	game_board.y = 0;
 
-
-
-	do{
-		print_board(game_board);
+	print_board(game_board);
+	std::cout << "\n\nco robisz wariacie: ";
+	while(true){
 		char input[2];
-		std::cout << "\n\nco robisz wariacie: ";
+		input[0] = '\0';
 		std::cin.getline(input, 2);
+		
 		game_board.player_input[0] = input[0];
 		if (game_board.player_input[0] == 'k') {
 			std::cout << "dzieki za gre!";
+			delete[] game_board.shot_history;
+			delete[] game_board.shot_type_history;
 			return 0;
 		}
-
-		use_cursor(game_board);
-
-	} while (true);
+		if ((game_board.player_input[0] == 'w') || (game_board.player_input[0] == 'a') || (game_board.player_input[0] == 's') || (game_board.player_input[0] == 'd') || (game_board.player_input[0] == ' ')) {
+			use_cursor(game_board);
+			print_board(game_board);
+			std::cout << "\n\nco robisz wariacie: ";
+		}
+	}
 
 	return 0;
 }

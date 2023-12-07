@@ -430,6 +430,7 @@ void start_prompt(Board& board) {
 void use_cursor(Board& board) {
 	char drctn = ' ';
 	unsigned score = 0;
+	bool delete_guess = false;
 	switch (board.player_input[0]) {
 	case 'W':
 	case 'w':
@@ -459,11 +460,20 @@ void use_cursor(Board& board) {
 		else board.x++;
 		break;
 	case 'o':
-		if (board.x != 0 && board.x != board.ui_size && board.y != 0 && board.y != board.ui_size && board.guess_count < board.atom_amount) {
+		delete_guess = false;
+		if ((board.x != 0) && (board.x != board.ui_size) && (board.y != 0) && (board.y != board.ui_size) && (board.guess_count < board.atom_amount)) {
+			for (unsigned i = 0; i < board.atom_amount; i++) {
+				if (board.user_guess_list[i] == board.x + board.y * (board.ui_size + 1)) {
+					delete_guess = true;
+					board.user_guess_list[i] = 0;
+					goto end;
+				}
+			}
 			board.user_guess_list[board.guess_count] = board.x + board.y * (board.ui_size + 1);
 			board.guess_count++;
 		}
 		else std::cout << "za duzo przypuszczanych atomów";
+		end:
 		board.x = 1;
 		board.y = 0;
 		break;

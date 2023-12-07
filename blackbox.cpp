@@ -459,7 +459,7 @@ void use_cursor(Board& board) {
 		else board.x++;
 		break;
 	case 'o':
-		if (board.x != 0 && board.x != board.ui_size && board.y != 0 && board.y != board.ui_size && board.guess_count < 8) {
+		if (board.x != 0 && board.x != board.ui_size && board.y != 0 && board.y != board.ui_size && board.guess_count < board.atom_amount) {
 			board.user_guess_list[board.guess_count] = board.x + board.y * (board.ui_size + 1);
 			board.guess_count++;
 		}
@@ -627,6 +627,7 @@ start:
 		if (game_board.player_input[0] == 'H') {
 			std::this_thread::sleep_for(std::chrono::milliseconds(700));
 			print_board(game_board);
+			game_board.player_input[0] = '\0';
 		}
 		else if (game_board.player_input[0] == 'q' || game_board.player_input[0] == 'Q') {
 			game_board.player_input[0] = '\0';
@@ -635,6 +636,7 @@ start:
 		else if (game_board.player_input[0] == 'p') {
 			std::cout << "\n\nWcisnij Enter, jesli chcesz rozpoczac nowa gre";
 			std::cin.get();
+			game_board.player_input[0] = '\0';
 			goto start;
 		}
 		else {

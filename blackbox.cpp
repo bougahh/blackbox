@@ -1,23 +1,23 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
-#include <cstdlib>
 #include <istream>
-#include <cstring>
 #include <chrono>
 #include <thread>
 #include <iomanip>
 #include <limits>
 #include <fstream>
 
+const unsigned LIST_SIZE = 8;
+
 struct Board {
 	unsigned ui_size;
 	unsigned x, y;
 
 	unsigned atom_amount;
-	unsigned atom_position_list[8];
+	unsigned atom_position_list[LIST_SIZE];
 
-	unsigned user_guess_list[8];
+	unsigned user_guess_list[LIST_SIZE];
 	unsigned guess_count;
 
 	unsigned shot_count;
@@ -65,22 +65,22 @@ void print_help(Board board) {
 		"\tw,a,s,d - ruch po planszy\n"
 		"\tspacja - gdy na brzegu planszy (=) wystrzelenie promienia\n"
 		"\to - gdy wewnatrz planszy (-) zaznaczenie podejrzenia miejsca atomu\n"
-		"\tp - wstrzymanie aktywnej rozgrywki, zobaczenie odpowiedzi\n"
-		"\tk - zakonczenie rozgrywki\n"
+		"\tH - pokaz na chwile polozenie atomow\n"
+		"\tp - zakonczenie aktywnej rozgrywki, zobaczenie odpowiedzi\n"
 		"\tu - cofniecie ruchu\n"
 		"\tq - wyjscie do menu glownego\n"
 		"\tz - zapisz gre\n"
-		"\tx - wczytaj gre\n";
+		"\tx - wczytaj gre\n"
+		"\tk - zakonczenie rozgrywki\n";
 }
 
-void bubble_sort(unsigned arr[], unsigned size) {
-
+void bubble_sort_desc(unsigned arr[], unsigned size) {
 	unsigned buffer;
 	for (unsigned i = 0; i < (size - 1); i++)
 	{
 		for (unsigned j = 0; j < (size - i - 1); j++)
 		{
-			if (arr[j] > arr[j + 1])
+			if (arr[j] < arr[j + 1])
 			{
 				buffer = arr[j];
 				arr[j] = arr[j + 1];
@@ -89,6 +89,7 @@ void bubble_sort(unsigned arr[], unsigned size) {
 		}
 	}
 }
+
 void random_atom_positions(Board& board) {
 
 	bool error_present = false;
@@ -111,7 +112,7 @@ void random_atom_positions(Board& board) {
 		for (unsigned i = 0; i < board.atom_amount; i++)
 			board.atom_position_list[i] = ((rand() % ((board.ui_size * board.ui_size) - 4) + board.ui_size + 2));
 
-		bubble_sort(board.atom_position_list, board.atom_amount);
+		bubble_sort_desc(board.atom_position_list, board.atom_amount);
 
 		for (unsigned i = 1; i < board.atom_amount; i++) {
 			if (board.atom_position_list[i - 1] == board.atom_position_list[i] || board.atom_position_list[i - 1] == board.atom_position_list[i] + 1 || board.atom_position_list[i - 1] == board.atom_position_list[i] - 1 || board.atom_position_list[i - 1] == board.atom_position_list[i] + board.ui_size + 1 || board.atom_position_list[i - 1] == board.atom_position_list[i] - (board.ui_size + 1)) {
@@ -155,11 +156,11 @@ void make_shot_history(Board& board, unsigned init_x, unsigned init_y, unsigned 
 void save_game(Board board) {
 	std::ofstream save("save.txt");
 	if (save.is_open()) {
-		save << board.ui_size << ' ' << board.atom_amount << ' ' << board.guess_count << ' ' << board.shot_count << '\n';
-		for (unsigned i = 0; i < 8; i++)
+		save << board.ui_size << ' ' << board.atom_amount << ' ' << board.guess_count << ' ' << board.shot_count << "\n\n";
+		for (unsigned i = 0; i < LIST_SIZE; i++)
 				save << board.atom_position_list[i] << '\n';
 		save << '\n';
-		for (unsigned i = 0; i < 8; i++)
+		for (unsigned i = 0; i < LIST_SIZE; i++)
 				save << board.user_guess_list[i] << '\n';
 		save << '\n';
 		for (unsigned i = 0; i < 160; i+=4) {
@@ -180,26 +181,31 @@ void load_game(Board& board) {
 	std::ifstream load("save.txt");
 	if (load.is_open()) {
 		load >> board.ui_size >> board.atom_amount >> board.guess_count >> board.shot_count;
-		for (unsigned i = 0; i < 8; i++)
+		for (unsigned i = 0; i < LIST_SIZE; i++)
 			load >> board.atom_position_list[i];
-		for (unsigned i = 0; i < 8; i++)
+
+		for (unsigned i = 0; i < LIST_SIZE; i++)
 			load >> board.user_guess_list[i];
-		for (unsigned i = 0; i < 160; i += 4) {
-			unsigned index;
-			load >> index;
-			if (index == i) {
-				load >> board.shot_history[i] >> board.shot_history[i + 1] >> board.shot_history[i + 2] >> board.shot_history[i + 3];
-			}
+
+		unsigned index = 0;
+		unsigned i = 0;
+		unsigned temp_shot_history[160] = { 0 }; // Temporary array to store shot_history data
+		load >> index;
+		do {
+			load >> temp_shot_history[index] >> temp_shot_history[index + 1] >> temp_shot_history[index + 2] >> temp_shot_history[index + 3] >> index;
+			i += 4;
+		} while (i < board.shot_count && load);
+
+		// Copy temp_shot_history to board.shot_history
+		for (unsigned j = 0; j < 160; j++) {
+			board.shot_history[j] = temp_shot_history[j];
 		}
-		for (unsigned i = 0; i < 40; i++) {
-			unsigned index;
-			load >> index;
-			if (index == i) {
-				load >> board.shot_type_history[i];
-			}
-		}
+			
+		for (unsigned i = 0; i < board.shot_count / 4; i++)
+			load >> board.shot_type_history[index] >> index;
 	}
 }
+
 
 void ray_shoot(Board& board, char start_direction) {
 	unsigned x_init = board.x, y_init = board.y;
@@ -475,7 +481,8 @@ void start_prompt(Board& board) {
 			"\t(1) - 5x5 - 3 atomy\n"
 			"\t(2) - 8x8 - 5 atomow\n"
 			"\t(3) - 10x10 - 8 atomow\n"
-			"Mozesz zawsze opuscic gre poprzez wpisanie litery 'k', lub wczytaj gre znakiem 'x'"
+			"\t(k) - wyjdz z gry\n"
+			"\t(x) - wczytaj gre\n"
 			"\nCzas na wybor: ";
 		std::cin >> input;
 		std::cin.clear();
@@ -487,15 +494,21 @@ void start_prompt(Board& board) {
 		else switch (input) {
 		case '1':
 			board.ui_size = 5 + 1;
+			random_atom_positions(board);
 			return;
 		case '2':
 			board.ui_size = 8 + 1;
+			random_atom_positions(board);
 			return;
 		case '3':
 			board.ui_size = 10 + 1;
+			random_atom_positions(board);
 			return;
 		case 'x':
+		case 'X':
+			board.set_game();
 			load_game(board);
+			return;
 		default:
 			std::cout << "Nieprawidlowa wielkosc planszy. Sprobuj ponownie.\n";
 		}
@@ -539,6 +552,8 @@ void use_cursor(Board& board) {
 			if (board.user_guess_list[i] == board.x + board.y * (board.ui_size + 1)) {
 				delete_guess = true;
 				board.user_guess_list[i] = 0;
+				board.guess_count--;
+				bubble_sort_desc(board.user_guess_list, LIST_SIZE);
 				goto end;
 			}
 		}
@@ -548,7 +563,7 @@ void use_cursor(Board& board) {
 		}
 		else std::cout << "za duzo przypuszczanych atomów";
 		end:
-		board.x = 1;
+		board.x = 0;
 		board.y = 0;
 		break;
 	case ' ':
@@ -646,7 +661,9 @@ void print_board(Board& game_board) {
 			if ((col != 0) || (col != game_board.ui_size) || (row != 0) || (row != game_board.ui_size)) {
 				for (unsigned i = 0; i < game_board.atom_amount; i++)
 					if (game_board.atom_position_list[i] == printer_position) atom_is_here = true;
-					else if (game_board.user_guess_list[i] == printer_position) atom_guess = true;
+
+				for (unsigned i = 0; i < game_board.atom_amount; i++)
+					if (game_board.user_guess_list[i] == printer_position) atom_guess = true;
 			}
 
 			if (row == 0 && col == 0) {
@@ -712,7 +729,15 @@ void print_board(Board& game_board) {
 	}
 	print_help(game_board);
 }
-
+unsigned score_counting(Board board,unsigned score) {
+	for (unsigned i : board.atom_position_list) {
+		for (unsigned j : board.user_guess_list) {
+			if (j == i && j != 0)
+				score++;
+		}
+	}
+	return score;
+}
 int main() {
 	Board game_board;
 	unsigned total_score = 0;
@@ -721,21 +746,10 @@ int main() {
 start:
 	game_board.set_game();
 	start_prompt(game_board);
-	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-	random_atom_positions(game_board);
-
-	game_board.x = 1;
-	game_board.y = 0;
 
 	while (true) {
 		if (game_board.stop_game) {
-			bubble_sort(game_board.user_guess_list, 8);
-			for (unsigned i = 0; i < game_board.ui_size; i++) {
-				if (game_board.atom_position_list[i] == game_board.user_guess_list[i]) {
-					if (game_board.atom_position_list[i] != 0)
-						total_score++;
-				}
-			}
+			total_score += score_counting(game_board, total_score);
 			std::cout << "Twoj wynik to: " << total_score;
 			goto end;
 		}

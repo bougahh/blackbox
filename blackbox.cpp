@@ -101,7 +101,7 @@ start:
 		print_board(game_board);
 		print_help(game_board);
 
-		std::cout << "Wybierz ruch: ";
+		std::cout << "Choose a move: ";
 		input[0] = '\0';
 
 		std::cin.get(input, 2);
@@ -116,9 +116,9 @@ start:
 			goto start;
 		else if (game_board.show_result) {
 			print_board(game_board);
-			std::cout << "\nLiczba znalezionych atomow: " << score_counting(game_board, total_score);
-			std::cout << "\nWszystkie znalezione atomy: " << total_score;
-			std::cout << "\n\nWcisnij Enter, jesli chcesz rozpoczac nowa gre";
+			std::cout << "\nAtoms found: " << score_counting(game_board, total_score);
+			std::cout << "\nTotal atoms found: " << total_score;
+			std::cout << "\n\nPress Enter to start a new game ";
 			std::cin.get();
 			game_board.player_input[0] = '\0';
 			game_board.show_atoms = false;
@@ -128,7 +128,7 @@ start:
 	}
 
 end:
-	std::cout << "\nDzieki za gre!";
+	std::cout << "\nThank you for playing!";
 	return 0;
 }
 
@@ -246,17 +246,17 @@ void load_game(Board& board) {
 void start_prompt(Board& board) {
 	char input;
 	print_title();
-	std::cout << "\nWitaj w grze Black Box!"
-		"\nAby zwyciezyc, znajdz kazdy atom na planszy za pomoca promieni, ktore wystrzeliwujesz z brzegow planszy.\n";
+	std::cout << "\nWelcome to Black Box!"
+		"\nTo win, shoot rays from the edges of the board to find where the atoms are. Mark your guesses on the board\n";
 	while (true) {
 		std::cout <<
-			"\nOto mozliwosci wyboru:\n"
-			"  (1) - 5x5 - 3 atomy\n"
-			"  (2) - 8x8 - 5 atomow\n"
-			"  (3) - 10x10 - 8 atomow\n"
-			"  (k) - wyjdz z gry\n"
-			"  (x) - wczytaj gre\n"
-			"\nCzas na wybor: ";
+			"\nAvailible choices\n"
+			"  (1) - 5x5 - 3 atoms\n"
+			"  (2) - 8x8 - 5 atoms\n"
+			"  (3) - 10x10 - 8 atomsw\n"
+			"  (k) - quit the game\n"
+			"  (x) - load game\n"
+			"\nTime to choose: ";
 		std::cin >> input;
 		std::cin.clear();
 		while (std::cin.get() != '\n');
@@ -283,7 +283,7 @@ void start_prompt(Board& board) {
 			load_game(board);
 			return;
 		default:
-			std::cout << "Nieprawidlowa wielkosc planszy. Sprobuj ponownie.\n";
+			std::cout << "Wrong board size. Try again.\n";
 		}
 	}
 }
@@ -390,17 +390,17 @@ void print_title() {
 }
 void print_help(Board board) {
 	std::cout <<
-		"Ilosc atomow: " << board.atom_amount <<
-		"\nOto lista dostepnych ruchow:\n"
-		"  w,a,s,d - ruch po planszy\n"
-		"  spacja - gdy na brzegu planszy (=) wystrzelenie promienia\n"
-		"  o - gdy wewnatrz planszy (-) zaznaczenie podejrzenia miejsca atomu\n"
-		"  H - pokazanie na chwile polozenie atomow\n"
-		"  p - zakonczenie aktywnej rozgrywki, zobaczenie odpowiedzi\n"
-		"  u,U/r,R - cofniecie/ponowienie ruchu\n"
-		"  q - wyjscie do menu glownego\n"
-		"  z/x - zapisanie/wczytanie gry\n"
-		"  k - zakonczenie rozgrywki\n";
+		"Atoms on board: " << board.atom_amount <<
+		"\nAvailible moves:\n"
+		"  w,a,s,d - move around the board\n"
+		"  spacja - when on the edge of the board (=) shoot a ray\n"
+		"  o - when inside the board (-) mark atom guess\n"
+		"  H - show the positions of atoms for a short while\n"
+		"  p - stop the game, show the answer, don't get awarded points\n"
+		"  u,U/r,R - undo/redo a move\n"
+		"  q - quit to main menu\n"
+		"  z/x - save/load game\n"
+		"  k - finish round\n";
 }
 
 void ray_shoot(Board& board, char start_direction) {
@@ -709,7 +709,7 @@ void use_cursor(Board& board) {
 		if ((board.x != 0) && (board.x != board.ui_size) && (board.y != 0) && (board.y != board.ui_size) && (board.guess_count < board.atom_amount)) {
 			board.user_guess_list[board.guess_count++] = board.x + board.y * (board.ui_size + 1);
 		}
-		else std::cout << "za duzo przypuszczanych atomów";
+		else std::cout << "You've exceeded the atom limit\n";
 	end:
 		board.x = board.ui_size / 2;
 		board.y = board.ui_size / 2;
@@ -735,7 +735,7 @@ void use_cursor(Board& board) {
 	case 'p':
 		board.show_atoms = true;
 		print_board(board);
-		std::cout << "\n\nWcisnij Enter, jesli chcesz rozpoczac nowa gre";
+		std::cout << "\n\nPress Enter to start a new game ";
 		std::cin.get();
 		board.show_atoms = false;
 		break;
@@ -762,7 +762,7 @@ void use_cursor(Board& board) {
 		load_game(board);
 		break;
 	default:
-		std::cout << "nie rozpoznaje komendy";
+		std::cout << "Unknown command\n";
 		break;
 	}
 }
@@ -791,7 +791,7 @@ void redo(Board& board) {
 		board.shot_count += 4;
 	}
 	else {
-		std::cout << "No moves to redo.";
+		std::cout << "No moves do redo.";
 	}
 }
 
@@ -799,7 +799,6 @@ void make_shot_history(Board& board, unsigned init_x, unsigned init_y, unsigned 
 	bool duplicate = false;
 	for (unsigned i = 0; i < board.shot_count; i += 4) {
 		if (((board.shot_history[i + 2] == init_x) && (board.shot_history[i + 3] == init_y)) || ((board.shot_type_history[i / 4] == 1) && (board.shot_history[i + 2] == board.x) && (board.shot_history[i + 3] == board.y))) {
-			std::cout << "juz stad strzelales lub strzelasz gdzie wczesniej skonczyl promien\n";
 			duplicate = true;
 			break;
 		}
@@ -883,7 +882,7 @@ unsigned score_counting(Board board, unsigned& score) {
 
 bool close_query(Board& board) {
 	char input[2];
-	std::cout << "\nCzy wyswietlic rozwiazanie i ilosc punktow?(y/n): ";
+	std::cout << "\nShow answer and points scored?(y/n): ";
 	input[0] = '\0';
 	std::cin.get(input, 2);
 	std::cin.clear();
